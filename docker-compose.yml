@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      target: production
+    ports:
+      - '3000:3000'
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=authn_system
+      - DB_USER=postgres
+      - DB_PASSWORD=${DB_PASSWORD:-changeme}
+      - DB_SSL=false
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
+      - JWT_EXPIRY=24h
+      - SMTP_HOST=${SMTP_HOST:-localhost}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASS=${SMTP_PASS:-}
+      - SMTP_FROM=${SMTP_FROM:-noreply@example.com}
+      - APP_URL=${APP_URL:-http://localhost:3000}
+      - PASSWORD_RESET_EXPIRY_HOURS=1
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - authn-network
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: authn_system
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - '5432:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - authn-network
+    restart: unless-stopped
+
+  # Development override: add pgAdmin
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    profiles:
+      - dev
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - '5050:80'
+    depends_on:
+      - postgres
+    networks:
+      - authn-network
+
+volumes:
+  postgres-data:
+
+networks:
+  authn-network:
+    driver: bridge
