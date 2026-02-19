@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 /**
  * Extends Express Request to include a unique request ID for distributed tracing.
  */
-// eslint-disable-next-line @typescript-eslint/no-namespace
+/* eslint-disable @typescript-eslint/no-namespace */
 declare global {
   namespace Express {
     interface Request {
@@ -13,6 +13,7 @@ declare global {
     }
   }
 }
+/* eslint-enable @typescript-eslint/no-namespace */
 
 /**
  * Request ID middleware.

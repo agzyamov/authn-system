@@ -2,7 +2,7 @@ import type { Request, Response, NextFunction } from 'express';
 import type { AuthService } from '../services/AuthService.js';
 import type { PasswordResetService } from '../services/PasswordResetService.js';
 import type { UserRepository } from '../repositories/UserRepository.js';
-import type { AuthResponse, MessageResponse, UserDTO } from '../types/api.js';
+import type { UserDTO } from '../types/api.js';
 
 /**
  * Authentication controller.
@@ -64,11 +64,7 @@ export function createAuthController(
      * GET /api/auth/me
      * Returns the current authenticated user's data.
      */
-    async getCurrentUser(
-      req: Request,
-      res: Response,
-      next: NextFunction,
-    ): Promise<void> {
+    async getCurrentUser(req: Request, res: Response, next: NextFunction): Promise<void> {
       try {
         if (!req.user) {
           res.status(401).json({ user: undefined as unknown as UserDTO });
@@ -116,11 +112,7 @@ export function createAuthController(
      * POST /api/auth/password-reset/request
      * Initiates password reset flow by sending email.
      */
-    async requestPasswordReset(
-      req: Request,
-      res: Response,
-      next: NextFunction,
-    ): Promise<void> {
+    async requestPasswordReset(req: Request, res: Response, next: NextFunction): Promise<void> {
       try {
         const { email } = req.body as { email: string };
         await passwordResetService.requestPasswordReset(email);
@@ -137,11 +129,7 @@ export function createAuthController(
      * POST /api/auth/password-reset/confirm
      * Validates reset token and updates password.
      */
-    async confirmPasswordReset(
-      req: Request,
-      res: Response,
-      next: NextFunction,
-    ): Promise<void> {
+    async confirmPasswordReset(req: Request, res: Response, next: NextFunction): Promise<void> {
       try {
         const { token, new_password } = req.body as { token: string; new_password: string };
         await passwordResetService.confirmPasswordReset(token, new_password);
@@ -155,11 +143,7 @@ export function createAuthController(
      * POST /api/auth/password-change
      * Changes password for authenticated user.
      */
-    async changePassword(
-      req: Request,
-      res: Response,
-      next: NextFunction,
-    ): Promise<void> {
+    async changePassword(req: Request, res: Response, next: NextFunction): Promise<void> {
       try {
         if (!req.user) {
           res.status(401).json({ message: 'Unauthorized' });

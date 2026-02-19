@@ -9,13 +9,13 @@ import { logger } from '../utils/logger.js';
 export const requestLogger = pinoHttp({
   logger,
   customLogLevel: (_req, res, err) => {
-    if (err !== null && err !== undefined || res.statusCode >= 500) return 'error';
+    if ((err !== null && err !== undefined) || res.statusCode >= 500) return 'error';
     if (res.statusCode >= 400) return 'warn';
     return 'info';
   },
   customSuccessMessage: (req) => {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-    return `${ (req as any).method as string ?? 'UNKNOWN'} ${ (req as any).url as string ?? '/'}`;
+    return `${((req as any).method as string) ?? 'UNKNOWN'} ${((req as any).url as string) ?? '/'}`;
   },
   redact: {
     paths: ['req.headers.authorization', 'req.body.password', 'req.body.token'],
