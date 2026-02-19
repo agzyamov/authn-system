@@ -1,50 +1,93 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+SYNC IMPACT REPORT
+==================
+Version Change: 0.0.0 → 1.0.0 (MINOR: Initial constitution adoption)
+Modified Principles: None (new project)
+Added Sections: Technical Requirements, Code Quality & Documentation
+Removed Sections: None
+Templates Requiring Updates:
+  ✅ plan-template.md (constitution check gates documented)
+  ✅ spec-template.md (references requirements framework)
+  ✅ tasks-template.md (testing phases align with pyramid)
+Follow-up TODOs: None
+-->
+
+# Authn-System Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Clean Code & SOLID Design
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+All code MUST adhere to clean code principles: meaningful names, single responsibility,
+DRY (Don't Repeat Yourself), and SOLID design patterns. Functions MUST be small (max 20 lines
+ideally) and readable at a glance. Deeply nested conditionals and magic numbers are prohibited.
+Refactoring for clarity is as valued as implementing new features. Violations require explicit
+justification in code review.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### II. TypeScript with Strict Mode (NON-NEGOTIABLE)
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+All backend code MUST be written in TypeScript with `strict: true` in tsconfig.json. 
+Strict mode enforces: explicit type annotations, no implicit `any`, null/undefined safety, and
+function parameter validation. `@ts-ignore` comments are prohibited except with PR justification.
+This ensures type safety throughout the authentication system and prevents runtime errors in
+security-critical paths.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### III. Testing Pyramid with 80% Business Logic Coverage
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+Testing MUST follow the pyramid: 60% unit tests (single function/module), 30% integration tests
+(service boundaries, auth flows), 10% end-to-end tests (full authentication scenarios).
+Business logic MUST achieve 80% minimum code coverage; infrastructure code (logging, formatting)
+may have lower coverage. Test-first development is required—tests MUST fail before implementation
+begins (Red-Green-Refactor cycle). Coverage reports are gated in CI/CD.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### IV. JSDoc Documentation (MANDATORY)
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+Every exported function, class, interface, and type MUST have JSDoc comments documenting:
+purpose/behavior, parameters (with types), return value, and any thrown errors/exceptions.
+Non-exported internal functions MUST be documented if their intent is non-obvious. Examples
+in JSDoc comments are encouraged for complex logic. Missing JSDoc blocks block code review approval.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+### V. Security-First Authentication
+
+All authentication operations MUST follow OWASP standards and principle of least privilege.
+Passwords MUST NOT be logged; sensitive tokens MUST NOT be exposed in error messages or logs.
+All endpoints MUST validate and sanitize inputs. Secrets MUST use environment variables, never
+hardcoded. Session management MUST enforce timeouts and invalidation. Security-critical changes
+require security review before merge.
+
+## Technical Requirements
+
+**Language & Runtime**: TypeScript 5.x or later, Node.js 18 LTS or later  
+**Package Manager**: npm with package-lock.json (no yarn, pnpm locks in monorepo mode)  
+**Linting**: ESLint with strict rule set enforced in CI/CD; Prettier for code formatting  
+**Testing Framework**: Jest for unit/integration tests; fixtures and mocks MUST be isolated  
+**Type Checking**: TypeScript strict mode as primary enforcement; no `any` type allowed  
+
+## Code Quality & Documentation Standards
+
+All pull requests MUST pass:
+- TypeScript compilation with zero errors
+- ESLint checks with zero warnings
+- All tests passing with 80% coverage on business logic
+- Code review verifying JSDoc completeness
+- No hardcoded secrets or credentials
+
+Commits MUST include descriptive messages referencing feature/fix type.
+Feature branches MUST follow naming convention: `feature/<short-description>` or `fix/<short-description>`.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This constitution supersedes all other coding standards and practices in the authn-system project.
+Amendments require:
+1. Documentation of rationale and impact
+2. Approval from at least one maintainer
+3. Migration plan for existing code (if breaking)
+4. Update to this document with new version number
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Principle Violations**: PRs violating core principles MUST be rejected unless justified.
+Security violations (Principle V) are auto-rejected with no exception path.
+
+**Version Enforcement**: All developers MUST acknowledge this constitution before committing code.
+CI/CD gates enforce TypeScript strict mode, test coverage, and linting—non-negotiable.
+
+**Version**: 1.0.0 | **Ratified**: 2026-02-20 | **Last Amended**: 2026-02-20
