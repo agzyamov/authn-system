@@ -1,0 +1,36 @@
+{
+    "chat.promptFilesRecommendations": {
+        "speckit.constitution": true,
+        "speckit.specify": true,
+        "speckit.plan": true,
+        "speckit.tasks": true,
+        "speckit.implement": true
+    },
+    "chat.tools.terminal.autoApprove": {
+        ".specify/scripts/bash/": true,
+        ".specify/scripts/powershell/": true
+    },
+    "airun.settings": {
+        "workspaceId": "aff06656-9b41-4bb8-a7d5-4e6a1930e8fc"
+    },
+    "claudeCode.environmentVariables": [
+        {
+            "name": "ANTHROPIC_BASE_URL",
+            "value": "http://localhost:59251"
+        },
+        {
+            "name": "ANTHROPIC_AUTH_TOKEN",
+            "value": "dummy"
+        },
+        {
+            "name": "NO_PROXY",
+            "value": "localhost,127.0.0.1"
+        },
+        {
+            "name": "ANTHROPIC_LOG",
+            "value": "debug"
+        }
+    ],
+    "claudeCode.disableLoginPrompt": true
+}
+
