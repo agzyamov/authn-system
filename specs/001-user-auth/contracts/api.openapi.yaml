@@ -1,0 +1,509 @@
+openapi: 3.0.3
+info:
+  title: User Authentication API
+  description: |
+    RESTful API for user authentication system supporting registration, login, password reset, and session management.
+    
+    ## Security
+    - All endpoints use HTTPS (enforced in production)
+    - JWT Bearer token authentication for protected endpoints
+    - bcrypt password hashing (never expose plaintext)
+    - Rate limiting applied to prevent brute-force attacks
+    
+    ## Error Response Strategy
+    - Email enumeration prevention: generic "Invalid credentials" for login failures
+    - Password reset for non-existent email: returns 200 OK (no information leak)
+    - 4xx errors for client issues, 5xx for server errors
+  version: 1.0.0
+  contact:
+    name: Authentication System Team
+servers:
+  - url: http://localhost:3000/api
+    description: Development server
+  - url: https://api.example.com/api
+    description: Production server (HTTPS enforced)
+
+tags:
+  - name: Authentication
+    description: User registration, login, logout operations
+  - name: Password Management
+    description: Password reset and change operations
+  - name: Health
+    description: Service health check
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      description: Returns service status (no authentication required)
+      tags:
+        - Health
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2026-02-20T10:30:00Z"
+
+  /auth/register:
+    post:
+      summary: Register new user
+      description: |
+        Creates a new user account with email and password. Email must be unique.
+        Password is hashed with bcrypt before storage. Returns user data and JWT token.
+      tags:
+        - Authentication
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  maxLength: 255
+                  description: User's email address (unique, case-insensitive)
+                  example: "user@example.com"
+                password:
+                  type: string
+                  minLength: 8
+                  maxLength: 72
+                  description: User's password (min 8 characters, will be hashed)
+                  example: "SecurePassword123"
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+                  token:
+                    type: string
+                    description: JWT token valid for 24 hours
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        '400':
+          description: Invalid input (email format, password too short)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalidEmail:
+                  value:
+                    error: "Invalid email format"
+                weakPassword:
+                  value:
+                    error: "Password must be at least 8 characters"
+        '409':
+          description: Email already registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Email already registered"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/login:
+    post:
+      summary: User login
+      description: |
+        Authenticates user with email and password. Returns JWT token valid for 24 hours.
+        Generic "Invalid credentials" error prevents email enumeration.
+      tags:
+        - Authentication
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: User's email address
+                  example: "user@example.com"
+                password:
+                  type: string
+                  description: User's password
+                  example: "SecurePassword123"
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+                  token:
+                    type: string
+                    description: JWT token valid for 24 hours
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        '401':
+          description: Invalid credentials (wrong email or password)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Invalid credentials"
+        '400':
+          description: Missing required fields
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/logout:
+    post:
+      summary: User logout
+      description: |
+        Invalidates the current JWT token. Token is added to blacklist (if implemented).
+        Client should delete token from storage regardless of response.
+      tags:
+        - Authentication
+      operationId: logoutUser
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Logout successful"
+        '401':
+          description: Unauthorized (invalid or missing token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/me:
+    get:
+      summary: Get current user
+      description: Returns current authenticated user's information
+      tags:
+        - Authentication
+      operationId: getCurrentUser
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User data retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized (invalid or expired token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/password-reset/request:
+    post:
+      summary: Request password reset
+      description: |
+        Sends password reset email with time-limited link (1 hour expiry).
+        Always returns 200 OK even if email doesn't exist (prevents email enumeration).
+      tags:
+        - Password Management
+      operationId: requestPasswordReset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: User's email address
+                  example: "user@example.com"
+      responses:
+        '200':
+          description: |
+            Password reset email sent (or silently failed if email doesn't exist).
+            Client should display "If email exists, reset link sent" message.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "If email is registered, password reset link has been sent"
+        '400':
+          description: Invalid email format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/password-reset/confirm:
+    post:
+      summary: Complete password reset
+      description: |
+        Resets password using token from email. Token must be valid, unused, and not expired.
+        Invalidates all existing JWT tokens for the user.
+      tags:
+        - Password Management
+      operationId: confirmPasswordReset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+                - new_password
+              properties:
+                token:
+                  type: string
+                  format: uuid
+                  description: Reset token from email link
+                  example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                new_password:
+                  type: string
+                  minLength: 8
+                  maxLength: 72
+                  description: New password (min 8 characters)
+                  example: "NewSecurePassword456"
+      responses:
+        '200':
+          description: Password reset successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Password reset successful"
+        '400':
+          description: Invalid token format or weak password
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalidToken:
+                  value:
+                    error: "Invalid token format"
+                weakPassword:
+                  value:
+                    error: "Password must be at least 8 characters"
+        '404':
+          description: Token not found, expired, or already used
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Invalid or expired reset token"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/password-change:
+    post:
+      summary: Change password (authenticated)
+      description: |
+        Changes password for logged-in user. Requires current password for verification.
+        Invalidates all existing JWT tokens (user must re-login).
+      tags:
+        - Password Management
+      operationId: changePassword
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - current_password
+                - new_password
+              properties:
+                current_password:
+                  type: string
+                  description: Current password for verification
+                  example: "OldPassword123"
+                new_password:
+                  type: string
+                  minLength: 8
+                  maxLength: 72
+                  description: New password (min 8 characters)
+                  example: "NewPassword456"
+      responses:
+        '200':
+          description: Password changed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Password changed successfully. Please login again."
+        '400':
+          description: Invalid input (weak new password)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized (invalid token or wrong current password)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalidToken:
+                  value:
+                    error: "Unauthorized"
+                wrongPassword:
+                  value:
+                    error: "Current password is incorrect"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from login or registration (valid for 24 hours)
+
+  schemas:
+    User:
+      type: object
+      description: User data transfer object (excludes password_hash)
+      required:
+        - id
+        - email
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique user identifier
+          example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        email:
+          type: string
+          format: email
+          maxLength: 255
+          description: User's email address
+          example: "user@example.com"
+        created_at:
+          type: string
+          format: date-time
+          description: Account creation timestamp
+          example: "2026-02-20T10:30:00Z"
+
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Human-readable error message
+          example: "Invalid email format"
+        details:
+          type: object
+          description: Additional error details (validation errors, etc.)
+          additionalProperties: true
+          example:
+            field: "email"
+            constraint: "Must be valid email format"
+
+  responses:
+    UnauthorizedError:
+      description: Unauthorized (missing, invalid, or expired JWT token)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Unauthorized"
+
+    InternalServerError:
+      description: Internal server error (logged for debugging)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Internal server error"
+
+security:
+  - {} # Most endpoints are public (login, register). Protected endpoints override with bearerAuth.
